@@ -30,23 +30,25 @@ const isMobile = window.innerWidth < 768;
  */
 const CONFIG = {
     // --- 粒子数量控制 ---
-    // 移动端保持适中数量，确保文字清晰
     petalCount: isMobile ? 2500 : 6000,
     bgCount: isMobile ? 1500 : 3500,
     ringCount: isMobile ? 2000 : 4000,
     outerBorderCount: isMobile ? 800 : 1200,
     
     // --- 字体与采样 ---
-    // 关键修复：移动端采样间隔设为1，不再稀疏，确保文字完整显示
-    textGap: 1,               
+    // 移动端采样间隔设为2，粒子更稀疏
+    textGap: isMobile ? 2 : 1,               
     
     // --- 视觉参数 ---
-    particleSize: isMobile ? 1.4 : 1.4, // 保持粒子可见度
-    returnSpeed: 0.08, // 粒子归位速度
-    friction: 0.90,    // 摩擦力
+    particleSize: isMobile ? 1.4 : 1.4, // 普通粒子大小
+    // 2. 移动端优化：文字粒子变得极小 (0.6)，形成精致的沙砾感
+    textParticleSize: isMobile ? 0.6 : 1.4, 
+    returnSpeed: 0.08,
+    friction: 0.90,
     
     // --- 动画参数 ---
-    rotationSpeed: 0.0005, // 稍微调快一点旋转速度，避免看起来像静止
+    // 3. 移动端优化：旋转速度大幅提升 (0.003)，解决看起来慢的问题
+    rotationSpeed: isMobile ? 0.003 : 0.0005, 
     
     colors: {
         winter: '#1B2640',    // 冬
@@ -83,7 +85,6 @@ window.addEventListener('resize', () => {
     resizeTimeout = setTimeout(() => {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        // 简单重载以适配横竖屏
         const newIsMobile = window.innerWidth < 768;
         if (newIsMobile !== isMobile) {
             location.reload(); 
@@ -94,13 +95,13 @@ window.addEventListener('resize', () => {
 });
 
 class Particle {
-    constructor(x, y, color) {
+    constructor(x, y, color, size = CONFIG.particleSize) {
         this.x = Math.random() * canvas.width;
         this.y = Math.random() * canvas.height;
         this.targetX = x; 
         this.targetY = y;
         this.color = color;
-        this.size = CONFIG.particleSize;
+        this.size = size; 
         
         this.vx = 0;
         this.vy = 0;
@@ -114,14 +115,13 @@ class Particle {
     }
 
     update(centerX, centerY, cos, sin) {
-        // 计算旋转后的目标位置
         const rotatedX = (this.targetX * cos) - (this.targetY * sin);
         const rotatedY = (this.targetX * sin) + (this.targetY * cos);
 
         let destX = centerX + rotatedX;
         let destY = centerY + rotatedY;
 
-        // 简化的物理归位逻辑
+        // 简化的物理逻辑
         if (Math.abs(this.x - destX) > 0.5 || Math.abs(this.y - destY) > 0.5) {
             let dx = destX - this.x;
             let dy = destY - this.y;
@@ -132,7 +132,6 @@ class Particle {
             this.x += this.vx;
             this.y += this.vy;
         } else {
-            // 归位后锁定位置，跟随旋转
             this.x = destX;
             this.y = destY;
             this.vx = 0;
@@ -149,15 +148,13 @@ function init() {
     const minDimension = Math.min(canvas.width, canvas.height);
     
     // --- 响应式尺寸计算 ---
-    // 关键修复：放大移动端比例
-    // 移动端：半径设为宽度的 46% (直径 92%)，这会让边缘非常靠近屏幕两侧
-    // 电脑端：保持 35%
-    const radiusScale = isMobile ? 0.46 : 0.35; 
+    // 1. 修复显示不全：大幅缩小移动端比例
+    // 0.28 * 2.7(大致膨胀系数) ≈ 0.75，占屏幕宽度的 75%，保证四周留白
+    const radiusScale = isMobile ? 0.28 : 0.35; 
     const radius = minDimension * radiusScale; 
     
-    // 动态计算圆环参数
-    const ringGap = radius * 0.05; // 间隙
-    // 移动端圆环稍微宽一点点以容纳文字
+    const ringGap = radius * 0.05; 
+    // 移动端圆环宽度适配
     const ringWidth = radius * (isMobile ? 0.28 : 0.25); 
     
     const ringInnerR = radius + ringGap;
@@ -183,7 +180,7 @@ function init() {
         particlesArray.push(new Particle(x, y, color));
     }
 
-    // 2. 生成背景圆盘 (填充到 ringInnerR)
+    // 2. 生成背景圆盘
     let bgParticlesCreated = 0;
     while (bgParticlesCreated < CONFIG.bgCount) {
         let theta = Math.random() * Math.PI * 2;
@@ -212,7 +209,7 @@ function init() {
     }
 
     // 4. 外围黄色装饰圈
-    const borderR = ringOuterR + (isMobile ? 1 : 5);
+    const borderR = ringOuterR + (isMobile ? 2 : 5);
     for (let i = 0; i < CONFIG.outerBorderCount; i++) {
         let theta = Math.random() * Math.PI * 2;
         let r = borderR + Math.random() * (isMobile ? 2 : 3); 
@@ -228,10 +225,8 @@ function init() {
 function createSolarTermsParticles(innerR, outerR) {
     const textRadius = (innerR + outerR) / 2;
     
-    // 动态调整字体大小
-    // 关键修复：字体稍微调大一点点，保证可读性
-    const fontSize = isMobile ? 16 : 20;
-    // 增加临时画布大小，防止文字截断
+    // 动态调整字体大小，手机上稍微小一点适配窄环
+    const fontSize = isMobile ? 15 : 20;
     const canvasW = 120;
     const canvasH = 60;
 
@@ -249,7 +244,6 @@ function createSolarTermsParticles(innerR, outerR) {
         tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
         tempCtx.fillStyle = '#000';
         
-        // 关键修复：移除 'lighter'，使用标准字重，确保笔画足够粗能被采样到
         tempCtx.font = `${fontSize}px "Noto Serif SC", serif`; 
         tempCtx.textAlign = 'center';
         tempCtx.textBaseline = 'middle';
@@ -262,9 +256,7 @@ function createSolarTermsParticles(innerR, outerR) {
         
         for(let py = 0; py < canvasH; py += gap){
             for(let px = 0; px < canvasW; px += gap){
-                // 关键修复：降低透明度阈值 (180 -> 50)
-                // 只要有点颜色就生成粒子，确保细小的笔画也能显示出来
-                if(data[(py * canvasW + px) * 4 + 3] > 50){
+                if(data[(py * canvasW + px) * 4 + 3] > 60){ 
                     let textLocalX = px - canvasW/2;
                     let textLocalY = py - canvasH/2;
                     let charAngle = angle + Math.PI / 2;
@@ -273,7 +265,8 @@ function createSolarTermsParticles(innerR, outerR) {
                     let finalX = x + rotatedTextX;
                     let finalY = y + rotatedTextY;
                     
-                    particlesArray.push(new Particle(finalX, finalY, CONFIG.colors.text));
+                    // 使用极小的粒子尺寸 (0.6)
+                    particlesArray.push(new Particle(finalX, finalY, CONFIG.colors.text, CONFIG.textParticleSize));
                 }
             }
         }
