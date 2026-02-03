@@ -36,19 +36,19 @@ const CONFIG = {
     outerBorderCount: isMobile ? 800 : 1200,
     
     // --- 字体与采样 ---
-    // 移动端采样间隔设为2，粒子更稀疏
+    // 移动端采样间隔设为2
     textGap: isMobile ? 2 : 1,               
     
     // --- 视觉参数 ---
     particleSize: isMobile ? 1.4 : 1.4, // 普通粒子大小
-    // 2. 移动端优化：文字粒子变得极小 (0.6)，形成精致的沙砾感
-    textParticleSize: isMobile ? 0.6 : 1.4, 
+    // 2. [修改] 移动端文字粒子：0.6 -> 0.5 (更小更精致)
+    textParticleSize: isMobile ? 0.5 : 1.4, 
     returnSpeed: 0.08,
     friction: 0.90,
     
     // --- 动画参数 ---
-    // 3. 移动端优化：旋转速度大幅提升 (0.003)，解决看起来慢的问题
-    rotationSpeed: isMobile ? 0.003 : 0.0005, 
+    // 3. [修改] 移动端旋转速度：0.003 -> 0.006 (翻倍，加快旋转)
+    rotationSpeed: isMobile ? 0.006 : 0.0005, 
     
     colors: {
         winter: '#1B2640',    // 冬
@@ -148,14 +148,13 @@ function init() {
     const minDimension = Math.min(canvas.width, canvas.height);
     
     // --- 响应式尺寸计算 ---
-    // 1. 修复显示不全：大幅缩小移动端比例
-    // 0.28 * 2.7(大致膨胀系数) ≈ 0.75，占屏幕宽度的 75%，保证四周留白
-    const radiusScale = isMobile ? 0.28 : 0.35; 
+    // 1. [修改] 移动端整体缩放：0.28 -> 0.22 (大幅缩小，确保留白)
+    const radiusScale = isMobile ? 0.22 : 0.35; 
     const radius = minDimension * radiusScale; 
     
     const ringGap = radius * 0.05; 
-    // 移动端圆环宽度适配
-    const ringWidth = radius * (isMobile ? 0.28 : 0.25); 
+    // 移动端圆环宽度适配：稍微加宽一点比例 (0.28 -> 0.32) 以补偿半径缩小带来的周长减小，保证文字能放下
+    const ringWidth = radius * (isMobile ? 0.32 : 0.25); 
     
     const ringInnerR = radius + ringGap;
     const ringOuterR = radius + ringGap + ringWidth;
@@ -225,7 +224,7 @@ function init() {
 function createSolarTermsParticles(innerR, outerR) {
     const textRadius = (innerR + outerR) / 2;
     
-    // 动态调整字体大小，手机上稍微小一点适配窄环
+    // 动态调整字体大小
     const fontSize = isMobile ? 15 : 20;
     const canvasW = 120;
     const canvasH = 60;
@@ -265,7 +264,7 @@ function createSolarTermsParticles(innerR, outerR) {
                     let finalX = x + rotatedTextX;
                     let finalY = y + rotatedTextY;
                     
-                    // 使用极小的粒子尺寸 (0.6)
+                    // 使用极小的粒子尺寸
                     particlesArray.push(new Particle(finalX, finalY, CONFIG.colors.text, CONFIG.textParticleSize));
                 }
             }
