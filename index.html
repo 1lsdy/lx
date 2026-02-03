@@ -41,8 +41,8 @@ const CONFIG = {
     
     // --- 视觉参数 ---
     particleSize: isMobile ? 1.4 : 1.4, // 普通粒子大小
-    // 2. [修改] 移动端文字粒子：0.55 (微调大小)
-    textParticleSize: isMobile ? 0.6 : 1.4, 
+    // 2. [修改] 移动端文字粒子
+    textParticleSize: isMobile ? 1 : 1.4, 
     returnSpeed: 0.08,
     friction: 0.90,
     
@@ -149,7 +149,7 @@ function init() {
     
     // --- 响应式尺寸计算 ---
     // 1. [修改] 移动端整体缩放：0.25 (稍微放大一点)
-    const radiusScale = isMobile ? 0.27 : 0.35; 
+    const radiusScale = isMobile ? 0.3 : 0.35; 
     const radius = minDimension * radiusScale; 
     
     const ringGap = radius * 0.05; 
@@ -298,4 +298,5 @@ animate();
 </script>
 </body>
 </html>
+
 
